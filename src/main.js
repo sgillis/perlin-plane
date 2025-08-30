@@ -6,8 +6,15 @@ import { Perlin } from './perlin.js'
 import { ManualAgent } from './manual_agent.js'
 
 window.addEventListener('load', () => {
+    const agentSlider = document.getElementById('agent-slider');
+    const agentCount = document.getElementById('agent-count');
+    const scaleXSlider = document.getElementById('scale-x-slider');
+    const scaleXValue = document.getElementById('scale-x-value');
+    const scaleYSlider = document.getElementById('scale-y-slider');
+    const scaleYValue = document.getElementById('scale-y-value');
+
     new p5((p) => {
-        const nr_agents = 200;
+        let nr_agents = 200;
         let agents = [];
         let state = new State(p);
         let perlin = new Perlin();
@@ -18,14 +25,38 @@ window.addEventListener('load', () => {
         let showGuide = false;
         let manualAgent = new ManualAgent(state);
         let showVertices = false;
+        let perlinScaleX = 100;
+        let perlinScaleY = 100;
         window.state = state;
 
         p.setup = () => {
             const canvas = p.createCanvas(800, 600)
             const parent = document.querySelector('#app .card') || document.querySelector('#app') || document.body
             canvas.parent(parent);
-            perlin.generatePerlinMatrix();
-            alternate_perlin.generatePerlinMatrix();
+            perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
+            alternate_perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
+
+            // Set up slider event listeners
+            agentSlider.addEventListener('input', (e) => {
+                nr_agents = parseInt(e.target.value);
+                agentCount.textContent = nr_agents;
+            });
+            
+            scaleXSlider.addEventListener('input', (e) => {
+                perlinScaleX = parseInt(e.target.value);
+                scaleXValue.textContent = perlinScaleX;
+                // Regenerate perlin noise with new scale
+                perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
+                alternate_perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
+            });
+            
+            scaleYSlider.addEventListener('input', (e) => {
+                perlinScaleY = parseInt(e.target.value);
+                scaleYValue.textContent = perlinScaleY;
+                // Regenerate perlin noise with new scale
+                perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
+                alternate_perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
+            });
         }
 
         p.draw = () => {
@@ -79,8 +110,8 @@ window.addEventListener('load', () => {
                 agents = [];
                 perlin = new Perlin();
                 alternate_perlin = new Perlin();
-                perlin.generatePerlinMatrix();
-                alternate_perlin.generatePerlinMatrix();
+                perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
+                alternate_perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
                 manualAgent = new ManualAgent(state);
                 showEdges = true;
             }

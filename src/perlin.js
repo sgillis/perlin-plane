@@ -55,7 +55,7 @@ export class Perlin {
         this.matrix = matrix;
     }
 
-    generatePerlinMatrix() {
+    generatePerlinMatrix(scaleX, scaleY) {
         const matrix = [];
         for (let y = 0; y < this.rows; y++) {
             matrix[y] = [];
@@ -70,7 +70,7 @@ export class Perlin {
             for (let y = 0; y < this.rows; y++) {
                 // All noise functions return values in the range of -1 to 1.
                 // noise.simplex2 and noise.perlin2 for 2d noise
-                let value = noise.simplex2(x / 100, y / 100);
+                let value = noise.simplex2(x / scaleX, y / scaleY);
                 matrix[y][x] = Math.abs(value) * Math.PI * 2;
             }
         }

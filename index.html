@@ -7,7 +7,22 @@
     <title>Vite App</title>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div id="controls" style="margin: 10px; padding: 10px; background: #333; color: white; border-radius: 5px; display: flex; flex-direction: column; gap: 10px;">
+        <div>
+          <label for="agent-slider">Agents: <span id="agent-count">200</span></label>
+          <input type="range" id="agent-slider" min="10" max="1000" value="200" step="10" style="width: 200px; margin-left: 10px;">
+        </div>
+        <div>
+          <label for="scale-x-slider">Perlin Scale X: <span id="scale-x-value">100</span></label>
+          <input type="range" id="scale-x-slider" min="10" max="500" value="100" step="10" style="width: 200px; margin-left: 10px;">
+        </div>
+        <div>
+          <label for="scale-y-slider">Perlin Scale Y: <span id="scale-y-value">100</span></label>
+          <input type="range" id="scale-y-slider" min="10" max="500" value="100" step="10" style="width: 200px; margin-left: 10px;">
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
