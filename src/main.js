@@ -12,6 +12,7 @@ window.addEventListener('load', () => {
     const scaleXValue = document.getElementById('scale-x-value');
     const scaleYSlider = document.getElementById('scale-y-slider');
     const scaleYValue = document.getElementById('scale-y-value');
+    const saveButton = document.getElementById('save-button');
 
     new p5((p) => {
         let nr_agents = 200;
@@ -56,6 +57,10 @@ window.addEventListener('load', () => {
                 // Regenerate perlin noise with new scale
                 perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
                 alternate_perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
+            });
+            
+            saveButton.addEventListener('click', () => {
+                p.saveCanvas('p5-flow-' + Date.now(), 'jpg');
             });
         }
 
