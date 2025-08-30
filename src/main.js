@@ -13,6 +13,7 @@ window.addEventListener('load', () => {
     const scaleYSlider = document.getElementById('scale-y-slider');
     const scaleYValue = document.getElementById('scale-y-value');
     const saveButton = document.getElementById('save-button');
+    const resetButton = document.getElementById('reset-button');
 
     new p5((p) => {
         let nr_agents = 200;
@@ -30,6 +31,32 @@ window.addEventListener('load', () => {
         let perlinScaleY = 100;
         window.state = state;
 
+        const spawnAgents = () => {
+            for (let i = 0; i < nr_agents; i++) {
+                // Choose one perlin at random
+                let chosenPerlin = Math.random() < 1.0 ? perlin : alternate_perlin;
+                let maxNoise = 0.0;
+                let pathNoise = Math.random() * maxNoise;
+                let newAgent = new Agent(chosenPerlin, pathNoise);
+                agents.push(newAgent);
+            }
+        };
+
+        const resetCanvas = () => {
+            // Clear all points from the Map
+            state = new State(p);
+            state.initialize_frame();
+            window.state = state
+            agents = [];
+            perlin = new Perlin();
+            alternate_perlin = new Perlin();
+            perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
+            alternate_perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
+            manualAgent = new ManualAgent(state);
+            showEdges = true;
+            spawnAgents();
+        };
+
         p.setup = () => {
             const canvas = p.createCanvas(800, 600)
             const parent = document.querySelector('#app .card') || document.querySelector('#app') || document.body
@@ -42,7 +69,7 @@ window.addEventListener('load', () => {
                 nr_agents = parseInt(e.target.value);
                 agentCount.textContent = nr_agents;
             });
-            
+
             scaleXSlider.addEventListener('input', (e) => {
                 perlinScaleX = parseInt(e.target.value);
                 scaleXValue.textContent = perlinScaleX;
@@ -50,7 +77,7 @@ window.addEventListener('load', () => {
                 perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
                 alternate_perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
             });
-            
+
             scaleYSlider.addEventListener('input', (e) => {
                 perlinScaleY = parseInt(e.target.value);
                 scaleYValue.textContent = perlinScaleY;
@@ -58,10 +85,17 @@ window.addEventListener('load', () => {
                 perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
                 alternate_perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
             });
-            
+
             saveButton.addEventListener('click', () => {
                 p.saveCanvas('p5-flow-' + Date.now(), 'jpg');
             });
+
+            resetButton.addEventListener('click', () => {
+                resetCanvas();
+            });
+
+            // Spawn initial agents
+            spawnAgents();
         }
 
         p.draw = () => {
@@ -108,17 +142,7 @@ window.addEventListener('load', () => {
 
         p.keyPressed = () => {
             if (p.key === 'r' || p.key === 'R') {
-                // Clear all points from the Map
-                state = new State(p);
-                state.initialize_frame();
-                window.state = state
-                agents = [];
-                perlin = new Perlin();
-                alternate_perlin = new Perlin();
-                perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
-                alternate_perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
-                manualAgent = new ManualAgent(state);
-                showEdges = true;
+                resetCanvas();
             }
             if (p.key === 'b' || p.key === 'B') {
                 manualAgent.add_at_collision(p.mouseX, p.mouseY)
@@ -127,14 +151,7 @@ window.addEventListener('load', () => {
                 state.find_faces()
             }
             if (p.key === 'a') {
-                for (let i = 0; i < nr_agents; i++) {
-                    // Choose one perlin at random
-                    let chosenPerlin = Math.random() < 1.0 ? perlin : alternate_perlin;
-                    let maxNoise = 0.0;
-                    let pathNoise = Math.random() * maxNoise;
-                    let newAgent = new Agent(chosenPerlin, pathNoise);
-                    agents.push(newAgent);
-                }
+                spawnAgents();
             }
             if (p.key === 'p') {
                 showPerlin = !showPerlin;
