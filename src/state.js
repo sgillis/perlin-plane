@@ -1,23 +1,28 @@
 import { Point, Edge, HalfEdge, Face } from './geometry.js';
 
 export class State {
-    constructor(p) {
+    constructor(p, width=800, height=600) {
         this.points = new Map();
         this.edges = [];
         this.p = p;
         this.index = 0;
-        this.lastDot = null;
-        this.agentStartDot = null;
         this.collided = false;
         this.faces = null;
+        this.faces_to_draw = null;
+        this.width = width;
+        this.height = height;
     }
 
     initialize_frame() {
-        this.add_dot(0, 0);
-        this.add_dot(800, 0);
-        this.add_dot(800, 600);
-        this.add_dot(0, 600);
-        this.add_dot(0, 0);
+        this.edges = [];
+        this.faces = null;
+        this.faces_to_draw = null;
+        this.index = 0
+        const r1 = this.add_dot(null, 0, 0);
+        const r2 = this.add_dot(r1.point, this.width, 0);
+        const r3 = this.add_dot(r2.point, this.width, this.height);
+        const r4 = this.add_dot(r3.point, 0, this.height);
+        this.add_dot(r4.point, 0, 0);
     }
 
     find_faces() {
@@ -27,14 +32,18 @@ export class State {
         for (const edge of this.edges) {
             const pointA = this.points.get(edge.a);
             const pointB = this.points.get(edge.b);
-            const halfEdge1 = new HalfEdge(pointA, pointB);
-            const halfEdge2 = new HalfEdge(pointB, pointA);
-
-            // Set twin relationships
-            halfEdge1.twin = halfEdge2;
-            halfEdge2.twin = halfEdge1;
-
-            halfEdges.push(halfEdge1, halfEdge2);
+            if(!this.isOuterEdge(pointA, pointB)) {
+                const halfEdge1 = new HalfEdge(pointA, pointB);
+                const halfEdge2 = new HalfEdge(pointB, pointA);
+                // Set twin relationships
+                halfEdge1.twin = halfEdge2;
+                halfEdge2.twin = halfEdge1;
+                halfEdges.push(halfEdge1, halfEdge2);
+            } else {
+                // To make it left hand turns, switch A and B
+                const outerHalfEdge = new HalfEdge(pointB, pointA)
+                halfEdges.push(outerHalfEdge)
+            }
         }
 
         // Group half-edges by their origin vertex
@@ -75,55 +84,44 @@ export class State {
         this.faces = faces;
     }
 
-    agent_add_dot(x, y) {
-        if(this.agentStartDot == null) {
-            const result = this.add_dot(x, y);
-            this.agentStartDot = result.point;
-            return {state: 'ok'};
-        } else {
-            const result = this.add_dot(x, y);
-            if (result.collision) {
-                if (this.collided) {
-                    this.collided = false;
-                    this.lastDot = null;
-                    this.agentStartDot = null;
-                    return {state: 'done'};
-                } else {
-                    this.collided = true;
-                    this.lastDot = this.agentStartDot;
-                    return {state: 'collided'};
-                }
-            } else {
-                return {state: 'ok'};
-            }
+    isOuterEdge(pointA, pointB) {
+        const dx = pointA.x - pointB.x;
+        const dy = pointA.y - pointB.y;
+        const threshold = 0.00001;
+        if(Math.abs(dy) < threshold && pointA.y < threshold && dx < 0) {
+            return true;
+        } else if(Math.abs(dy) < threshold && Math.abs(pointA.y - this.height) < threshold && dx > 0) {
+            return true;
+        } else if(Math.abs(dx) < threshold && pointA.x < threshold && dy > 0) {
+            return true;
+        } else if(Math.abs(dx) < threshold && Math.abs(pointA.x - this.width) < threshold && dy < 0) {
+            return true;
         }
+        return false;
     }
 
-    add_dot(x, y) {
+    add_dot(lastDot, x, y) {
         let newPoint = new Point(this.index, x, y);
-        if (this.lastDot == null) {
-            this.lastDot = newPoint
+        if (lastDot == null) {
             this.points.set(this.index, newPoint)
             this.index++;
-            return {collision: true, point: newPoint}
+            return {collision: false, point: newPoint}
         } else {
-            let intersection = this.findIntersections(this.lastDot, newPoint);
+            let intersection = this.findIntersections(lastDot, newPoint);
             if (intersection == null) {
-                this.edges.push(new Edge(this.lastDot.index, this.index))
-                this.lastDot = newPoint
+                this.edges.push(new Edge(lastDot.index, this.index))
                 this.points.set(this.index, newPoint)
                 this.index++;
                 return {collision: false, point: newPoint};
             } else if (intersection.intersection.type == 'endpoint') {
                 // Handle endpoint intersection - connect to existing point
                 const existingPoint = this.findExistingPoint(intersection.intersection);
-                this.edges.push(new Edge(this.lastDot.index, existingPoint.index));
-                this.lastDot = null;
+                this.edges.push(new Edge(lastDot.index, existingPoint.index));
                 return {collision: true, point: existingPoint};
             } else {
                 this.points.set(this.index, intersection.point)
                 // Add edge from lastDot to intersection point
-                this.edges.push(new Edge(this.lastDot.index, this.index));
+                this.edges.push(new Edge(lastDot.index, this.index));
                 // Find and remove the intersected edge
                 const intersectedEdgeIndex = this.edges.findIndex(edge => edge === intersection.edge);
                 if (intersectedEdgeIndex !== -1) {
@@ -132,7 +130,6 @@ export class State {
                     this.edges.push(new Edge(intersection.edge.a, this.index));
                     this.edges.push(new Edge(this.index, intersection.edge.b));
                 }
-                this.lastDot = null;
                 this.index++;
                 return {collision: true, point: intersection.point};
             }
@@ -160,30 +157,59 @@ export class State {
             return;
         }
 
-        const p = this.p;
-        p.push();
-        p.strokeWeight(1);
+        this.p.push();
+        this.p.strokeWeight(0);
 
         // Draw each face with a different color
+
         for (let i = 0; i < this.faces.length; i++) {
             const face = this.faces[i];
 
-            // Generate a color based on face index
-            const hue = (i * 137.5) % 360; // Golden angle for good color distribution
-            p.fill(hue, 60, 90, 100); // HSB color with transparency
-            p.stroke(hue, 80, 70);
-
-            // Draw the face as a polygon
-            p.beginShape();
-            for (const halfEdge of face.halfEdges) {
-                if (halfEdge && halfEdge.origin) {
-                    p.vertex(halfEdge.origin.x, halfEdge.origin.y);
+            if(this.faces_to_draw != null) {
+                if (!this.faces_to_draw.includes(i)) {
+                    continue;
                 }
             }
-            p.endShape(p.CLOSE);
+
+            if(face.halfEdges.length === 2) {
+                // console.log('weird face found')
+                continue;
+            }
+            this.draw_face(face, this.p)
         }
 
-        p.pop();
+        this.p.pop();
+    }
+
+    draw_face(face, p) {
+        // Generate a color based on face index
+        p.stroke(0); // Black stroke
+        p.strokeWeight(1); // Very thin, subtle stroke
+        p.stroke(face.getStrokeColor(this.width, this.height)); // Use face color for stroke
+        // const hue = (i * 137.5) % 360; // Golden angle for good color distribution
+        // p.fill(hue, 60, 90, 100); // HSB color with transparency
+        p.fill(p.color(face.getColor(this.width, this.height)))
+        // p.stroke(hue, 80, 70);
+
+        // Draw the face as a polygon
+        p.beginShape();
+        for (const halfEdge of face.halfEdges) {
+            if (halfEdge && halfEdge.origin) {
+                p.vertex(halfEdge.origin.x, halfEdge.origin.y);
+            }
+        }
+        p.endShape(p.CLOSE);
+    }
+
+    draw_vertices(p) {
+        for (let state_point of this.points.values()) {
+            p.fill(p.color(200, 200, 200))
+            p.noStroke()
+            p.circle(state_point.x, state_point.y, 10)
+            p.fill(p.color(0, 0, 0))
+            p.textAlign(p.CENTER, p.CENTER)
+            p.text(state_point.index, state_point.x, state_point.y)
+        }
     }
 
     findIntersections(p1, p2) {
@@ -286,40 +312,6 @@ export class State {
             }
         }
         return null;
-    }
-
-    draw_phantom_edge(p) {
-        // if this.lastDot is set, draw a phantom edge from lastDot to mouse position
-        if (this.lastDot) {
-            this.p.push();
-            this.p.stroke(100, 100, 255, 150); // Semi-transparent blue
-            this.p.strokeWeight(1);
-            this.p.line(this.lastDot.x, this.lastDot.y, this.p.mouseX, this.p.mouseY);
-            this.p.pop();
-        }
-    }
-
-    add_at_collision(x, y) {
-        if (this.lastDot) {
-            // Calculate direction vector from lastDot to (x, y)
-            const dx = x - this.lastDot.x;
-            const dy = y - this.lastDot.y;
-
-            // Calculate the length of the direction vector
-            const length = Math.sqrt(dx * dx + dy * dy);
-
-            // If the length is not zero, normalize and extend to 10000
-            if (length > 0) {
-                const unitX = dx / length;
-                const unitY = dy / length;
-
-                // Calculate new point 10000 units away in the same direction
-                const p3x = this.lastDot.x + unitX * 10000;
-                const p3y = this.lastDot.y + unitY * 10000;
-
-                this.agent_add_dot(p3x, p3y);
-            }
-        }
     }
 
     calculateAngle(edge1, edge2) {

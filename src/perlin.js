@@ -1,3 +1,5 @@
+import './perlinGenerator.js';
+
 export class Perlin {
     constructor(width = 800, height = 600, resolution = 1) {
         this.width = width;
@@ -7,7 +9,9 @@ export class Perlin {
         this.rows = Math.ceil(height / resolution) + 1;
         this.noise = 0.1;
 
-        this.matrix = this.generateSmoothedMatrix();
+        this.matrix = null;
+        // this.matrix = this.generateSmoothedMatrix();
+        // this.matrix = this.generatePerlinMatrix(p);
     }
 
     generateSmoothedMatrix() {
@@ -48,8 +52,29 @@ export class Perlin {
             }
         }
 
-        // Start with a few seed points
-        return matrix;
+        this.matrix = matrix;
+    }
+
+    generatePerlinMatrix() {
+        const matrix = [];
+        for (let y = 0; y < this.rows; y++) {
+            matrix[y] = [];
+            for (let x = 0; x < this.cols; x++) {
+                matrix[y][x] = null;
+            }
+        }
+
+        noise.seed(Math.random());
+
+        for (let x = 0; x < this.cols; x++) {
+            for (let y = 0; y < this.rows; y++) {
+                // All noise functions return values in the range of -1 to 1.
+                // noise.simplex2 and noise.perlin2 for 2d noise
+                let value = noise.simplex2(x / 100, y / 100);
+                matrix[y][x] = Math.abs(value) * Math.PI * 2;
+            }
+        }
+        this.matrix = matrix;
     }
 
     getValue(x, y) {

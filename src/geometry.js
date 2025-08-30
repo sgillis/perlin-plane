@@ -1,3 +1,5 @@
+import { Color, gradient, mix } from 'spectral.js'
+
 export class Point {
     constructor(index, x, y) {
         this.index = index;
@@ -66,6 +68,8 @@ export class Face {
         this.halfEdges = [halfEdge];
         this.latestHalfEdge = halfEdge;
         this.startingPoint = halfEdge.origin;
+        this.color = null;
+        this.strokeColor = null;
     }
 
     addNextHalfEdge(halfEdges) {
@@ -96,6 +100,61 @@ export class Face {
             }
         } else {
             return null
+        }
+    }
+
+    getColor(width, height) {
+        if(this.color == null) {
+            let color1 = new Color('#005E72');
+            let color2 = new Color('#EAD9A7');
+            let color3 = new Color('#894B54');
+            // Calculate the center of the face
+            let centerX = 0;
+            let centerY = 0;
+            for (const halfEdge of this.halfEdges) {
+                centerX += halfEdge.origin.x;
+                centerY += halfEdge.origin.y;
+            }
+            centerX /= this.halfEdges.length;
+            centerY /= this.halfEdges.length;
+
+            // Calculate t based on distance from (0,0) to (width,height)
+            let t = Math.sqrt((centerX * centerX) + (centerY * centerY)) / Math.sqrt((width * width) + (height * height));
+            let tNoise = (Math.random() * 2 - 1) * 0.05;
+            t = Math.min(1, Math.max(0, t + tNoise)); // Clamp between 0 and 1
+            let color = gradient(t, [color1, 0], [color2, 0.5], [color3, 1]).toString();
+            this.color = color
+            return color;
+        } else {
+            return this.color;
+        }
+    }
+
+    getStrokeColor(width, height) {
+        if(this.strokeColor == null) {
+            let color1 = new Color('#005E72');
+            let color2 = new Color('#EAD9A7');
+            let color3 = new Color('#894B54');
+            // Calculate the center of the face
+            let centerX = 0;
+            let centerY = 0;
+            for (const halfEdge of this.halfEdges) {
+                centerX += halfEdge.origin.x;
+                centerY += halfEdge.origin.y;
+            }
+            centerX /= this.halfEdges.length;
+            centerY /= this.halfEdges.length;
+
+            // Calculate t based on distance from (0,0) to (width,height)
+            let t = Math.sqrt((centerX * centerX) + (centerY * centerY)) / Math.sqrt((width * width) + (height * height));
+            let tNoise = (Math.random() * 2 - 1) * 0.05;
+            t = Math.min(1, Math.max(0, t + tNoise)); // Clamp between 0 and 1
+            let color = gradient(t, [color1, 0], [color2, 0.5], [color3, 1]);
+            let darkenedColor = mix([color, 0.5], [new Color('#000000'), 0.5]).toString();
+            this.strokeColor = darkenedColor
+            return darkenedColor;
+        } else {
+            return this.strokeColor;
         }
     }
 }
