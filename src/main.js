@@ -112,7 +112,7 @@ window.addEventListener('load', () => {
             });
 
             saveButton.addEventListener('click', () => {
-                p.saveCanvas('p5-flow-' + Date.now(), 'jpg');
+                p.saveCanvas('perlin-plane-' + Date.now(), 'jpg');
             });
 
             resetButton.addEventListener('click', () => {
