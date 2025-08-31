@@ -14,13 +14,18 @@ window.addEventListener('load', () => {
     const scaleYValue = document.getElementById('scale-y-value');
     const saveButton = document.getElementById('save-button');
     const resetButton = document.getElementById('reset-button');
+    const canvasSizeSelect = document.getElementById('canvas-size-select');
+    const nudgeFactorSlider = document.getElementById('nudge-factor-slider');
+    const nudgeFactorValue = document.getElementById('nudge-factor-value');
 
     new p5((p) => {
         let nr_agents = 200;
         let agents = [];
-        let state = new State(p);
-        let perlin = new Perlin();
-        let alternate_perlin = new Perlin();
+        let canvasWidth = 800;
+        let canvasHeight = 600;
+        let state = new State(p, canvasWidth, canvasHeight);
+        let perlin = new Perlin(canvasWidth, canvasHeight);
+        let alternate_perlin = new Perlin(canvasWidth, canvasHeight);
         state.initialize_frame();
         let showPerlin = false;
         let showEdges = true;
@@ -29,7 +34,22 @@ window.addEventListener('load', () => {
         let showVertices = false;
         let perlinScaleX = 100;
         let perlinScaleY = 100;
+        let nudgeFactor = 0.3;
         window.state = state;
+
+        const parseCanvasSize = (sizeValue) => {
+            switch (sizeValue) {
+                case '800x600': return { width: 800, height: 600 };
+                case '1024x768': return { width: 1024, height: 768 };
+                case '1280x720': return { width: 1280, height: 720 };
+                case '1920x1080': return { width: 1920, height: 1080 };
+                case '2560x1440': return { width: 2560, height: 1440 };
+                case 'square-small': return { width: 500, height: 500 };
+                case 'square-medium': return { width: 800, height: 800 };
+                case 'square-large': return { width: 1000, height: 1000 };
+                default: return { width: 800, height: 600 };
+            }
+        };
 
         const spawnAgents = () => {
             for (let i = 0; i < nr_agents; i++) {
@@ -37,19 +57,19 @@ window.addEventListener('load', () => {
                 let chosenPerlin = Math.random() < 1.0 ? perlin : alternate_perlin;
                 let maxNoise = 0.0;
                 let pathNoise = Math.random() * maxNoise;
-                let newAgent = new Agent(chosenPerlin, pathNoise);
+                let newAgent = new Agent(chosenPerlin, canvasWidth, canvasHeight, pathNoise, nudgeFactor);
                 agents.push(newAgent);
             }
         };
 
         const resetCanvas = () => {
             // Clear all points from the Map
-            state = new State(p);
+            state = new State(p, canvasWidth, canvasHeight);
             state.initialize_frame();
             window.state = state
             agents = [];
-            perlin = new Perlin();
-            alternate_perlin = new Perlin();
+            perlin = new Perlin(canvasWidth, canvasHeight);
+            alternate_perlin = new Perlin(canvasWidth, canvasHeight);
             perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
             alternate_perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
             manualAgent = new ManualAgent(state);
@@ -58,7 +78,7 @@ window.addEventListener('load', () => {
         };
 
         p.setup = () => {
-            const canvas = p.createCanvas(800, 600)
+            const canvas = p.createCanvas(canvasWidth, canvasHeight)
             const parent = document.querySelector('#app .card') || document.querySelector('#app') || document.body
             canvas.parent(parent);
             perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
@@ -86,11 +106,25 @@ window.addEventListener('load', () => {
                 alternate_perlin.generatePerlinMatrix(perlinScaleX, perlinScaleY);
             });
 
+            nudgeFactorSlider.addEventListener('input', (e) => {
+                nudgeFactor = parseFloat(e.target.value);
+                nudgeFactorValue.textContent = nudgeFactor;
+            });
+
             saveButton.addEventListener('click', () => {
                 p.saveCanvas('p5-flow-' + Date.now(), 'jpg');
             });
 
             resetButton.addEventListener('click', () => {
+                resetCanvas();
+            });
+
+            canvasSizeSelect.addEventListener('change', (e) => {
+                const size = parseCanvasSize(e.target.value);
+                canvasWidth = size.width;
+                canvasHeight = size.height;
+                p.resizeCanvas(canvasWidth, canvasHeight);
+                // Reset the canvas after resizing to ensure proper initialization
                 resetCanvas();
             });
 

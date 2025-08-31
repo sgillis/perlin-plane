@@ -1,11 +1,11 @@
 export class Agent {
-    constructor(perlin, jitter = 0) {
+    constructor(perlin, width=800, height=600, jitter = 0, nudgeFactor = 0.3) {
         this.perlin = perlin;
         this.done = false;
         this.collided = false;
         this.stepSize = 5;
-        this.currentX = Math.random() * 800;
-        this.currentY = Math.random() * 600;
+        this.currentX = Math.random() * width;
+        this.currentY = Math.random() * height;
         this.initialX = this.currentX;
         this.initialY = this.currentY;
         this.angle = perlin.getValue(this.currentX, this.currentY);
@@ -14,7 +14,8 @@ export class Agent {
         this.noiseScale = 0.1;
         this.lastDot = null;
         this.startDot = null;
-        this.jitter = jitter
+        this.jitter = jitter;
+        this.nudgeFactor = nudgeFactor;
     }
 
     update(state) {
@@ -72,8 +73,7 @@ export class Agent {
         while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
 
         // Nudge factor based on the difference (larger difference = bigger nudge)
-        const nudgeFactor = 0.3;
-        const nudgeAmount = angleDiff * nudgeFactor;
+        const nudgeAmount = angleDiff * this.nudgeFactor;
 
         // Apply jitter
         const noise = (Math.random() * 2 - 1) * this.jitter;
